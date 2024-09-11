@@ -23,7 +23,7 @@ class PostService {
 			if (cachedCount) {
 			  // Incrementa a contagem no cache
 			  await redis.incr(`post:${content} <--> ${cachedCount}`);
-			  infoLogger.info(`Post count incremented in cache for content: ${content}`);
+			  infoLogger.info(`Post count incremented in cache for content: ${content}\nCount: ${cachedCount}`);
 			} else {
 			  // Execute as consultas em paralelo
 			  const [existingPost, similarPost] = await Promise.all([
