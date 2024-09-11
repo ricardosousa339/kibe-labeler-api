@@ -8,7 +8,7 @@ services:
     ports:
       - "${POSTGRES_PORT}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # - postgres_data:/var/lib/postgresql/data
       - ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER"]
@@ -16,23 +16,29 @@ services:
       timeout: 5s
       retries: 5
 
-  # app:
-  #   build: .
-  #   container_name: app_kibe
-  #   env_file: .env.docker
-  #   ports:
-  #     - "3000:3000"
-  #   depends_on:
-  #     - postgres_kibe
-  #     - jetstream
-  #   volumes:
-  #     - .:/usr/src/app
-  #   command: npm start
+  app:
+    build: .
+    container_name: app_kibe
+    env_file: .env.docker
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres_kibe
+      - redis
+    volumes:
+      - .:/usr/src/app
+    command: npm start
 
-  # jetstream:
-  #   extends:
-  #     file: /home/ricardosousa339/projects/jetstream/docker-compose.yaml
-  #     service: jetstream
+  redis:
+    image: redis:latest
+    container_name: redis_kibe
+    env_file: .env.docker
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
 
 volumes:
   postgres_data:
+  redis_data:

@@ -11,5 +11,3 @@ END
 $do$;
 
 -- Connect to the kibe_db database and create the pg_trgm extension
-\c kibe_db
-CREATE EXTENSION IF NOT EXISTS pg_trgm;

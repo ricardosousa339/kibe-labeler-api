@@ -1,17 +1,27 @@
 import WebSocket from 'ws';
 import sequelize from './database';
 import PostService from './services/postService';
-import Post from './models/Post';
+import cron from 'node-cron';
 import {
   ComAtprotoSyncSubscribeRepos,
   SubscribeReposMessage,
   subscribeRepos,
 } from 'atproto-firehose'
+import errorLogger from './services/errorLogger';
+import syncCacheToDatabase from './services/syncJob';
 
 const client = subscribeRepos(`wss://bsky.network`, { decodeRepoOps: true })
 const postService = new PostService();
 let postCount = 0;
 const POST_LIMIT = process.env.POST_LIMIT ? parseInt(process.env.POST_LIMIT) : 100;
+
+
+// Agendar o job para rodar a cada hora
+cron.schedule('0 * * * *', () => {
+  console.log('Running sync job...');
+  syncCacheToDatabase();
+});
+
 
 // Sincronizar o banco de dados
 sequelize.sync().then(() => {
@@ -19,7 +29,7 @@ sequelize.sync().then(() => {
 });
 
 client.on('open', () => {
-  // console.log('Connected to ws://localhost:6008/subscribe');
+  console.log('Connected to ws://localhost:6008/subscribe');
   // client.send('Hello from client');
 });
 
@@ -30,33 +40,41 @@ client.on('message', (m: SubscribeReposMessage) => {
   if (ComAtprotoSyncSubscribeRepos.isCommit(m)) {
     m.ops.forEach(async (op) => {
 
-      const type = (op?.payload as any)?.$type;
+      try {
 
-      if(type === 'app.bsky.feed.post') {
+        const type = (op?.payload as any)?.$type;
 
-        const text = (op?.payload as any)?.text;
+        if (type === 'app.bsky.feed.post') {
 
-        console.log(text)
+          const text = (op?.payload as any)?.text;
 
-      await postService.addPost(text);
-      postCount++;
+          // console.log(text)
+
+          if (text.length > process.env.MIN_TEXT_LENGTH! && text.length < 255) {
+            await postService.addPost(text);
+            postCount++;
+
+          }
+
+          if (postCount >= POST_LIMIT) {
 
 
+            // const topPosts = await postService.getTopPosts(50);
+            // console.log('Top posts:', topPosts.map(post => `${post.content}: ${post.count}`));
+            client.close();
+            // await Post.destroy({ where: {}, truncate: true });
+            console.log('Database truncated');
+            postCount = 0;
+          }
 
-  if (postCount >= POST_LIMIT) {
-
-    
-    // const topPosts = await postService.getTopPosts(50);
-    // console.log('Top posts:', topPosts.map(post => `${post.content}: ${post.count}`));
-    client.close();
-    // await Post.destroy({ where: {}, truncate: true });
-    console.log('Database truncated');
-    postCount = 0;
-  }
-
+        }
+        // console.log(op.payload)
       }
-      // console.log(op.payload)
-    })
+      catch (e: any) {
+        errorLogger.error(`Error adding post: ${e?.message}`);
+      }
+    }
+    )
   }
 })
 
@@ -84,7 +102,7 @@ client.on('message', (m: SubscribeReposMessage) => {
 
 //   if (postCount >= POST_LIMIT) {
 
-    
+
 //     // const topPosts = await postService.getTopPosts(50);
 //     // console.log('Top posts:', topPosts.map(post => `${post.content}: ${post.count}`));
 //     client.close();

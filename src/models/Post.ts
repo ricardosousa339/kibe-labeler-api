@@ -9,19 +9,19 @@ class Post extends Model {
 
 Post.init({
   id: {
-	type: DataTypes.INTEGER,
-	autoIncrement: true,
-	primaryKey: true
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
   },
   content: {
-	type: DataTypes.STRING,
-	allowNull: false,
-	unique: true
+    type: DataTypes.STRING(300), // Increase the maximum length to 1000 characters
+    allowNull: false,
+    unique: true
   },
   count: {
-	type: DataTypes.INTEGER,
-	allowNull: false,
-	defaultValue: 1
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 1
   },
   // external_uri: {
   //   type: DataTypes.STRING,
@@ -31,13 +31,14 @@ Post.init({
 }, {
   sequelize,
   tableName: 'posts',
-  indexes: [
-    {
-      fields: ['content'],
-      using: 'gin',
-      operator: 'gin_trgm_ops'
+  hooks: {
+    afterSync: async (options) => {
+      // Cria o índice de texto completo após a sincronização do modelo
+      await sequelize.query(`
+        CREATE INDEX IF NOT EXISTS posts_content_fulltext_idx ON "Posts" USING gin(to_tsvector('english', "content"));
+      `);
     }
-  ]
+  }
 });
 
 export default Post;

@@ -12,6 +12,7 @@
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^22.5.4",
+    "@types/node-cron": "^3.0.11",
     "@types/pg": "^8.11.8",
     "@types/ws": "^8.5.12",
     "ts-node": "^10.9.2",
@@ -20,9 +21,12 @@
   "dependencies": {
     "atproto-firehose": "^0.2.2",
     "dotenv": "^16.4.5",
+    "ioredis": "^5.4.1",
+    "node-cron": "^3.0.3",
     "pg": "^8.12.0",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.3",
+    "winston": "^3.14.2",
     "ws": "^8.18.0"
   }
 }
